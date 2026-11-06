@@ -47,6 +47,29 @@ function confetti() {
   }
 }
 
+// Social / profile links (empty ones in SITE are skipped)
+function socialLinks() {
+  const items = [
+    ["LinkedIn", SITE.linkedin],
+    ["GitHub", SITE.github],
+    ["Instagram", SITE.instagram],
+    ["Website", SITE.website],
+    ["Email", SITE.email ? "mailto:" + SITE.email : ""]
+  ];
+  return items
+    .filter(([, url]) => url)
+    .map(([name, url]) => `<a href="${url}" target="_blank" rel="noopener">${name}</a>`)
+    .join(" · ");
+}
+
+// Small footer: copyright + profile links (year updates itself)
+function buildFooter() {
+  const links = socialLinks();
+  $("footer").innerHTML = `
+    <div>© ${new Date().getFullYear()} ${SITE.owner} · Banana Sees 🍌</div>
+    ${links ? `<div>${links}</div>` : ""}`;
+}
+
 /* ==========================================================
    PAGE 1: Intro
    ========================================================== */
@@ -153,6 +176,8 @@ function renderSuggest() {
 function renderAbout() {
   const links = [
     `<a class="btn pk" href="#suggest">💡 Suggest an idiom</a>`,
+    SITE.linkedin ? `<a class="btn" href="${SITE.linkedin}" target="_blank" rel="noopener">💼 LinkedIn</a>` : "",
+    SITE.github ? `<a class="btn" href="${SITE.github}" target="_blank" rel="noopener">💻 GitHub</a>` : "",
     SITE.email ? `<a class="btn" href="mailto:${SITE.email}">✉ Email us</a>` : "",
     SITE.instagram ? `<a class="btn" href="${SITE.instagram}" target="_blank" rel="noopener">📸 Instagram</a>` : "",
     SITE.website ? `<a class="btn" href="${SITE.website}" target="_blank" rel="noopener">🌐 Website</a>` : ""
@@ -355,5 +380,6 @@ function route() {
 }
 
 buildBackground();
+buildFooter();
 window.addEventListener("hashchange", route);
 route();

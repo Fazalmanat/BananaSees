@@ -586,5 +586,8 @@ main {
 .contact-card { background: #fffdf3; border: 1px solid var(--ln); border-radius: 16px; padding: 14px; margin-top: 14px; text-align: center; }
 .contact-links { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
 .contact-links .btn { margin: 0; }
-.site-footer { text-align: center; color: #7a6f8f; font-size: .85rem; margin: 24px 0 8px; }
-.site-footer a { color: inherit; }
+
+/* ---------- Footer ---------- */
+.site-footer { max-width: 760px; margin: 24px auto 0; padding: 14px 14px calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; color: #6b5f82; font-size: .85rem; line-height: 1.7; position: relative; z-index: 1; }
+.site-footer a { color: inherit; font-weight: 700; text-decoration: none; }
+.site-footer a:hover { color: var(--pk); }

@@ -19,7 +19,10 @@
    Fill in the ones you want. Empty ones are simply hidden.
    ========================================================== */
 const SITE = {
+  owner: "Your Name",              // shown in the footer: © year owner
   creator: "The Banana Team",
+  linkedin: "",     // e.g. "https://linkedin.com/in/yourname"
+  github: "",       // e.g. "https://github.com/yourname"
   email: "",        // e.g. "hello@example.com"
   instagram: "",    // e.g. "https://instagram.com/yourname"
   website: ""       // e.g. "https://yoursite.com"
