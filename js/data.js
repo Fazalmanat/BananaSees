@@ -19,8 +19,8 @@
    Fill in the ones you want. Empty ones are simply hidden.
    ========================================================== */
 const SITE = {
-  owner: "",             
-  creator: "Fazal Rahman Manat",
+  owner: "Fazal Rahman Manat",             
+  creator: "",
   linkedin: "www.linkedin.com/in/fazal-r-manat",     
   github: "https://github.com/Fazalmanat",     
   email: "",        
