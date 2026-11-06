@@ -14,6 +14,17 @@
    - correct       : index of the right option (0 = A, 1 = B, …)
    ========================================================== */
 
+/* ==========================================================
+   Site details shown on the About / Contact page.
+   Fill in the ones you want. Empty ones are simply hidden.
+   ========================================================== */
+const SITE = {
+  creator: "The Banana Team",
+  email: "",        // e.g. "hello@example.com"
+  instagram: "",    // e.g. "https://instagram.com/yourname"
+  website: ""       // e.g. "https://yoursite.com"
+};
+
 const IDIOMS = [
   {
     id: "crow",

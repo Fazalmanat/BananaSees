@@ -1,7 +1,7 @@
 /* ==========================================================
    Banana Sees: app logic
    Pages are chosen by the URL hash:
-     #home (default) · #list · #suggest · #<idiom id>
+     #home (default) · #list · #suggest · #about · #<idiom id>
    Idiom content comes from data.js (IDIOMS).
    ========================================================== */
 "use strict";
@@ -144,6 +144,39 @@ function renderSuggest() {
       showStatus("Couldn’t send that. Please try again in a bit.");
     }
   };
+}
+
+/* ==========================================================
+   PAGE 5: About & contact
+   Contact buttons come from SITE in data.js (empty ones are hidden).
+   ========================================================== */
+function renderAbout() {
+  const links = [
+    `<a class="btn pk" href="#suggest">💡 Suggest an idiom</a>`,
+    SITE.email ? `<a class="btn" href="mailto:${SITE.email}">✉ Email us</a>` : "",
+    SITE.instagram ? `<a class="btn" href="${SITE.instagram}" target="_blank" rel="noopener">📸 Instagram</a>` : "",
+    SITE.website ? `<a class="btn" href="${SITE.website}" target="_blank" rel="noopener">🌐 Website</a>` : ""
+  ].join("");
+
+  app.innerHTML = `
+    <div class="box">
+      <h1 class="page-title">About Banana Sees 🍌👀</h1>
+      <p>Malayalam is packed with proverbs everyone quotes and nobody has ever tested. Will a crow really turn into a crane after a bath? Does a plum fill an elephant? We got tired of wondering, so we handed the job to a banana with googly eyes.</p>
+      <ul class="about-list">
+        <li><b>It’s a game, not a classroom.</b> No marks, no homework. Just guess, drag, laugh.</li>
+        <li><b>Bilingual on purpose.</b> The proverbs and the roasts are in Malayalam, with English underneath so everyone can join in.</li>
+        <li><b>${IDIOMS.length} experiments</b> so far, and the list keeps growing with your suggestions.</li>
+      </ul>
+      <p class="small-note">Made by ${SITE.creator}. All emoji scenes, no animals were harmed (the crane may disagree).</p>
+    </div>
+
+    <div class="box">
+      <h2>Contact 📬</h2>
+      <p>Got a proverb we should test, a line that needs fixing, or just want to say hi? Pick whichever is easiest.</p>
+      <div class="contact-card">
+        <div class="contact-links">${links}</div>
+      </div>
+    </div>`;
 }
 
 /* ==========================================================
@@ -317,6 +350,7 @@ function route() {
   if (index >= 0) renderIdiom(index);
   else if (hash === "list") renderList();
   else if (hash === "suggest") renderSuggest();
+  else if (hash === "about") renderAbout();
   else renderHome();
 }
 

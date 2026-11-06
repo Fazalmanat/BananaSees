@@ -579,3 +579,12 @@ main {
 .step-label { display: block; margin: 14px 0 6px; }
 .step-label--first { margin-top: 10px; }
 .reply-en { font-size: .95rem; margin-top: 4px; color: #4a3d66; }
+
+/* ---------- About & contact page ---------- */
+.about-list { margin: 8px 0 0; padding-left: 20px; }
+.about-list li { margin: 6px 0; }
+.contact-card { background: #fffdf3; border: 1px solid var(--ln); border-radius: 16px; padding: 14px; margin-top: 14px; text-align: center; }
+.contact-links { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.contact-links .btn { margin: 0; }
+.site-footer { text-align: center; color: #7a6f8f; font-size: .85rem; margin: 24px 0 8px; }
+.site-footer a { color: inherit; }
