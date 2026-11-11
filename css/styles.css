@@ -259,55 +259,10 @@ h2 {
   }
 }
 
-.hint {
-  position: absolute;
-  top: 8px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-weight: 700;
-  font-size: .95rem;
-}
 
-.res {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  font-size: 5rem;
-  background: rgba(255,255,255,.55);
-  animation: pop .6s;
-}
 
-.res .g {
-  opacity: .3;
-  position: relative;
-}
 
-.res .g::after {
-  content: "✖";
-  position: absolute;
-  right: -8px;
-  top: -8px;
-  font-size: 2rem;
-  color: #e0245e;
-  opacity: 1;
-}
 
-.cap {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
-  right: 8px;
-  text-align: center;
-  background: #fff;
-  border-radius: 12px;
-  padding: 4px 8px;
-  font-weight: 700;
-  font-size: .95rem;
-}
 
 @keyframes pop {
   from {
@@ -608,10 +563,9 @@ body { overflow-x: hidden; }
 .opt > span { min-width: 0; flex: 1; }
 h1 { font-size: clamp(1.6rem, 6vw, 2.2rem); }
 .ml { font-size: clamp(1.15rem, 4.5vw, 1.5rem); }
-.stage, .tgt, .tok, .res { max-width: 100%; }
+.stage, .tgt, .tok { max-width: 100%; }
 .tgt { font-size: clamp(3.4rem, 16vw, 5rem); }
 .tok { font-size: clamp(2.8rem, 12vw, 4rem); }
-.res { font-size: clamp(3rem, 15vw, 5rem); }
 
 /* Tablets and below */
 @media (max-width: 720px) {
@@ -641,9 +595,6 @@ h1 { font-size: clamp(1.6rem, 6vw, 2.2rem); }
 
   /* Drag stage */
   .stage { height: 215px; }
-  .hint { font-size: .8rem; padding: 0 8px; }
-  .cap { font-size: .8rem; left: 6px; right: 6px; bottom: 6px; padding: 4px 6px; }
-  .res { gap: 10px; padding-bottom: 36px; }
 
   /* Buttons: full width, easy to tap */
   .cta { flex-direction: column; align-items: stretch; }
@@ -656,4 +607,68 @@ h1 { font-size: clamp(1.6rem, 6vw, 2.2rem); }
 @media (max-width: 360px) {
   .grid { grid-template-columns: 1fr; }
   .nl { font-size: .78rem; }
+}
+
+/* ==========================================================
+   Experiment stage: guidance, drag, suspense, reveal
+   ========================================================== */
+.tok { animation: none; z-index: 3; will-change: transform; user-select: none; -webkit-user-select: none; outline: none; filter: none; }
+.tok-in { display: block; animation: bob 1.4s ease-in-out infinite; filter: drop-shadow(0 4px 4px rgba(0,0,0,.25)); }
+.tok.held { cursor: grabbing; z-index: 6; }
+.tok.held .tok-in { animation: none; transform: scale(1.18) rotate(-6deg); filter: drop-shadow(0 12px 8px rgba(0,0,0,.3)); }
+.tok:focus-visible .tok-in { outline: 3px dashed var(--pk); border-radius: 12px; }
+.tok.fly { transition: transform .4s cubic-bezier(.3, 1.3, .5, 1); }
+.tok.back { transition: transform .45s cubic-bezier(.3, 1.6, .5, 1); }
+.tok.nudge { animation: nudge 1s ease-in-out; }
+@keyframes nudge {
+  0%, 100% { transform: translate(0, 0); }
+  35% { transform: translate(var(--nx), var(--ny)) scale(1.06); }
+  65% { transform: translate(calc(var(--nx) * .3), calc(var(--ny) * .3)); }
+}
+
+.tgt { z-index: 2; }
+.tgt.breathe { animation: breathe 2.4s ease-in-out infinite; }
+@keyframes breathe { 50% { transform: scale(1.07); } }
+.tgt.tremble { animation: tremble 1.8s ease-in forwards; }
+@keyframes tremble {
+  0% { transform: rotate(0); }
+  15% { transform: rotate(-2deg); }
+  30% { transform: rotate(4deg) scale(1.03); }
+  45% { transform: rotate(-6deg) scale(1.06); }
+  60% { transform: rotate(8deg) scale(1.09); }
+  75% { transform: rotate(-10deg) scale(1.12); }
+  90% { transform: rotate(12deg) scale(1.15); }
+  100% { transform: rotate(0) scale(1.18); }
+}
+.tgt.reveal { animation: reveal .7s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes reveal { from { transform: scale(.2) rotate(-25deg); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.stage.tense { animation: tense 1.8s ease-in forwards; }
+@keyframes tense { to { filter: brightness(.9) saturate(1.25); } }
+
+.dots { position: absolute; width: 60px; text-align: center; font-weight: 800; font-size: 1.3rem; letter-spacing: 2px; animation: blink .7s infinite; z-index: 4; }
+@keyframes blink { 50% { opacity: .2; } }
+.burst { position: absolute; width: 20px; height: 20px; border-radius: 50%; border: 4px solid #ffd400; animation: burst .7s ease-out forwards; z-index: 4; pointer-events: none; }
+@keyframes burst { to { transform: scale(9); opacity: 0; } }
+.ghost { position: absolute; font-size: clamp(2.6rem, 11vw, 3.6rem); opacity: 0; animation: ghost-in .6s .25s forwards; pointer-events: none; }
+.ghost::after { content: "✖"; position: absolute; right: -6px; top: -6px; font-size: 1.6rem; color: #e0245e; }
+@keyframes ghost-in { from { transform: translateX(14px); opacity: 0; } to { transform: none; opacity: .4; } }
+
+.clue { position: absolute; top: 8px; left: 8px; right: 8px; text-align: center; font-weight: 700; font-size: .9rem; background: rgba(255,255,255,.75); border-radius: 10px; padding: 3px 10px; opacity: 0; transition: opacity .8s; pointer-events: none; z-index: 5; }
+.clue.show { opacity: 1; }
+.trail-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px rgba(42,31,61,.35); opacity: 0; pointer-events: none; animation: dot 2s ease-in-out infinite; animation-delay: calc(var(--d) * .25s); }
+@keyframes dot { 0%, 100% { opacity: 0; transform: scale(.4); } 40%, 60% { opacity: .9; transform: scale(1); } }
+.hand { position: absolute; font-size: 2.2rem; opacity: 0; pointer-events: none; z-index: 7; animation: hand 2.6s ease-in-out infinite; }
+@keyframes hand {
+  0% { opacity: 0; transform: translate(0, 0) scale(1); }
+  15% { opacity: 1; transform: translate(0, 0) scale(.9); }
+  75% { opacity: 1; transform: translate(var(--hx), var(--hy)) scale(.9); }
+  100% { opacity: 0; transform: translate(var(--hx), var(--hy)); }
+}
+
+/* Result message sits BELOW the stage so the scene is never covered */
+.stage-msg { margin-top: 10px; border-radius: 14px; background: #fff7e0; padding: 10px 12px; font-weight: 700; animation: rise .5s both; }
+
+@media (max-width: 520px) {
+  .clue { font-size: .8rem; }
 }

@@ -5,7 +5,7 @@
    - id            : short ascii word, used in the page link (#crow)
    - idiom         : the proverb itself (Malayalam)
    - question*     : the "what happens if…" question
-   - hint          : instruction shown on the drag stage
+   - hint          : a subtle clue (never say "drag"; let players discover it)
    - dragItem      : emoji the player drags
    - dragTarget    : emoji it must be dropped on
    - resultEmoji   : what actually happens (shown big)
@@ -19,14 +19,14 @@
    Fill in the ones you want. Empty ones are simply hidden.
    ========================================================== */
 const SITE = {
-  owner: "Fazal Rahman Manat",             
-  creator: "",
-  linkedin: "www.linkedin.com/in/fazal-r-manat",     
-  github: "https://github.com/Fazalmanat",     
-  email: "",        
-  instagram: "",
+  owner: "Your Name",              // shown in the footer: © year owner
+  creator: "The Banana Team",
+  linkedin: "",     // e.g. "https://linkedin.com/in/yourname"
+  github: "",       // e.g. "https://github.com/yourname"
+  email: "",        // e.g. "hello@example.com"
+  instagram: "",    // e.g. "https://instagram.com/yourname"
+  website: ""       // e.g. "https://yoursite.com"
 };
-
 
 const IDIOMS = [
   {
@@ -35,7 +35,7 @@ const IDIOMS = [
     idiom: "കാക്ക കുളിച്ചാൽ കൊക്കാകുമോ?",
     questionMl: "ഒരു കാക്ക നന്നായി കുളിച്ചാൽ കൊക്കായി മാറുമോ?",
     questionEn: "Will a crow turn into a crane if it takes a bath?",
-    hint: "Drag the crow into the tub. Soap is not a personality transplant.",
+    hint: "One of these is grubby. The other is wet. Funny how that works.",
     dragItem: "🐦‍⬛",
     dragTarget: "🛁",
     resultEmoji: "🐦‍⬛",
@@ -78,7 +78,7 @@ const IDIOMS = [
     idiom: "ആന വായിൽ അമ്പഴങ്ങ",
     questionMl: "വിശന്ന ആനയ്ക്ക് ഒരു അമ്പഴങ്ങ കിട്ടിയാൽ വയറു നിറയുമോ?",
     questionEn: "Does a hungry elephant get full from one tiny hog plum?",
-    hint: "Drag the plum into the elephant’s mouth. It will not send a thank-you note.",
+    hint: "Someone here is very hungry. Someone else is very small.",
     dragItem: "🫐",
     dragTarget: "🐘",
     resultEmoji: "🐘",
@@ -121,7 +121,7 @@ const IDIOMS = [
     idiom: "ഉരുളയ്ക്ക് ഉപ്പേരി",
     questionMl: "ഒരു ചോറുരുള എറിഞ്ഞാൽ തിരിച്ചു എന്ത് വരും?",
     questionEn: "You throw a rice ball. What comes flying back?",
-    hint: "Drag the rice ball over. This person replies for sport.",
+    hint: "Somebody over there just can’t resist replying.",
     dragItem: "🍙",
     dragTarget: "😎",
     resultEmoji: "🍛",
@@ -164,7 +164,7 @@ const IDIOMS = [
     idiom: "ചക്കിനു വച്ചത് കൊക്കിനു കൊണ്ടു",
     questionMl: "ചക്കയ്ക്ക് ഉന്നം വച്ചാൽ ശരിക്കും എന്തിൽ കൊള്ളും?",
     questionEn: "You aim at a jackfruit. What does the arrow actually hit?",
-    hint: "Aim at the jackfruit. The universe has already booked a crane.",
+    hint: "The jackfruit looks nervous. Probably nothing.",
     dragItem: "🏹",
     dragTarget: "🍈",
     resultEmoji: "🦢",
@@ -207,7 +207,7 @@ const IDIOMS = [
     idiom: "അണ്ണാറക്കണ്ണനും തന്നാലായത്",
     questionMl: "അണ്ണാൻ ഒരു ചെറിയ കല്ലു കൊണ്ടുവന്നാൽ പാലത്തിന് എന്ത് പ്രയോജനം?",
     questionEn: "A squirrel brings one tiny stone. Any use for the bridge?",
-    hint: "Hand the squirrel its pebble. Bridges are just stones with commitment issues.",
+    hint: "Little paws, big plans. The squirrel has its eye on something.",
     dragItem: "🪨",
     dragTarget: "🐿️",
     resultEmoji: "🌉",
@@ -250,7 +250,7 @@ const IDIOMS = [
     idiom: "കാണം വിറ്റും ഓണം ഉണ്ണണം",
     questionMl: "ഓണം വന്നു, പോക്കറ്റ് കാലി. ഇനി എന്ത് ചെയ്യും?",
     questionEn: "Onam is here and the pocket is empty. Now what?",
-    hint: "Drag the house to the dealer. Onam does not accept ‘maybe next year’.",
+    hint: "The feast is calling. The dealer is waiting. Your move.",
     dragItem: "🏡",
     dragTarget: "🧑‍💼",
     resultEmoji: "🍽️",
@@ -293,7 +293,7 @@ const IDIOMS = [
     idiom: "കുരങ്ങന്റെ കയ്യിൽ പൂമാല",
     questionMl: "ഒരു കുരങ്ങന്റെ കയ്യിൽ വിലപിടിപ്പുള്ള പൂമാല കിട്ടിയാൽ എന്താകും?",
     questionEn: "What happens when a monkey gets something precious?",
-    hint: "Drag the garland over. The monkey did not read the care label.",
+    hint: "A delicate thing and a curious paw. What could go wrong?",
     dragItem: "💐",
     dragTarget: "🐒",
     resultEmoji: "🐒",
@@ -336,7 +336,7 @@ const IDIOMS = [
     idiom: "അടി തെറ്റിയാൽ ആനയും വീഴും",
     questionMl: "ഒരു വലിയ ആനയ്ക്ക് അടി തെറ്റിയാൽ എന്ത് സംഭവിക്കും?",
     questionEn: "Can even an elephant fall after one wrong step?",
-    hint: "Put the elephant on the log. Gravity does not do VIPs.",
+    hint: "That log looks a bit wobbly. That elephant looks a bit heavy.",
     dragItem: "🐘",
     dragTarget: "🪵",
     resultEmoji: "🐘",
@@ -379,7 +379,7 @@ const IDIOMS = [
     idiom: "മിന്നുന്നതെല്ലാം പൊന്നല്ല",
     questionMl: "തിളങ്ങുന്ന ഒരു കല്ല് കണ്ടാൽ അത് പൊന്നാണെന്ന് ഉറപ്പിക്കാമോ?",
     questionEn: "Is everything shiny actually made of gold?",
-    hint: "Drag the shiny stone under the glass. Do not clap yet.",
+    hint: "Something shiny is under suspicion. The glass keeps staring.",
     dragItem: "🪨",
     dragTarget: "✨",
     resultEmoji: "🪨",
@@ -422,7 +422,7 @@ const IDIOMS = [
     idiom: "വേലി തന്നെ വിളവ് തിന്നുക",
     questionMl: "വിള സംരക്ഷിക്കേണ്ട വേലി തന്നെ വിളവ് തിന്നാൽ എന്താകും?",
     questionEn: "What if the fence starts eating the crops it protects?",
-    hint: "Offer the corn to the fence. The guard brought a fork.",
+    hint: "That fence looks hungry. The corn looks innocent.",
     dragItem: "🌽",
     dragTarget: "🪵",
     resultEmoji: "🌽",
@@ -465,7 +465,7 @@ const IDIOMS = [
     idiom: "കാക്കയ്ക്കും തൻ കുഞ്ഞ് പൊൻകുഞ്ഞ്",
     questionMl: "കാക്കയ്ക്ക് സ്വന്തം കുഞ്ഞ് എങ്ങനെയായിരിക്കും?",
     questionEn: "Does every parent think their own chick is the cutest?",
-    hint: "Hand the chick to the parent. The compliments are about to get unreasonable.",
+    hint: "Someone is waiting to be very proud of something very small.",
     dragItem: "🐣",
     dragTarget: "🐦‍⬛",
     resultEmoji: "🐦‍⬛",

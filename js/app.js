@@ -250,10 +250,11 @@ function renderIdiom(index) {
         <div class="note">Guess locked in. Bold choice. We’ll see how that goes 🤫</div>
         <b class="step-label">Step 2: Run the experiment!</b>
         <div class="stage" id="st">
-          <div class="hint">${idiom.hint}</div>
+          <div class="clue" id="clue">${idiom.hint}</div>
           <div class="tgt" id="tg">${idiom.dragTarget}</div>
-          <div class="tok" id="tk">${idiom.dragItem}</div>
+          <div class="tok" id="tk" tabindex="0" role="button" aria-label="Interactive item"><span class="tok-in">${idiom.dragItem}</span></div>
         </div>
+        <div class="stage-msg hide" id="msg"></div>
       </div>
 
       <div id="fin" class="hide"></div>
@@ -319,65 +320,204 @@ function renderIdiom(index) {
 
 /* ==========================================================
    Drag-and-drop experiment
-   Drop the item on the target (or just tap it) to run it.
+   Flow: gentle guidance → drag → fly to target → suspense → reveal.
+   Nothing on screen says "drag"; the guidance only hints.
    ========================================================== */
 function setupDrag(idiom, onFinished) {
   const stage = $("st"), item = $("tk"), target = $("tg");
-  let startX, startY, originLeft, originTop;
-  let dragging = false, moved = 0, done = false;
+  const clue = $("clue"), msg = $("msg");
 
-  function runExperiment() {
+  let startX = 0, startY = 0, dx = 0, dy = 0;
+  let limits = null;                 // how far the item may move inside the stage
+  let dragging = false, moved = 0, done = false, frame = 0;
+  const timers = [];
+  let nudgeLoop = 0;
+
+  /* ----- geometry helpers (all relative to the stage) ----- */
+  function centerOf(el) {
+    const s = stage.getBoundingClientRect(), r = el.getBoundingClientRect();
+    return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height / 2 };
+  }
+  // Direction from the item to the target
+  function vectorToTarget() {
+    const a = centerOf(item), b = centerOf(target);
+    return { x: b.x - a.x, y: b.y - a.y, from: a };
+  }
+  // Is the item close enough to the target (a little forgiving)?
+  function isNear() {
+    const i = item.getBoundingClientRect(), t = target.getBoundingClientRect(), pad = 14;
+    return !(i.right < t.left - pad || i.left > t.right + pad ||
+             i.bottom < t.top - pad || i.top > t.bottom + pad);
+  }
+
+  /* ----- gentle guidance while the player hasn't touched anything -----
+     0s   target softly breathes
+     4s   item hops toward the target (and again every 7s)
+     5.5s faint dots lead from item to target
+     7s   the clue text fades in
+     12s  a ghost hand slides across the path                          */
+  function nudge() {
+    const v = vectorToTarget();
+    item.style.setProperty("--nx", v.x * 0.18 + "px");
+    item.style.setProperty("--ny", v.y * 0.18 + "px");
+    item.classList.remove("nudge");
+    void item.offsetWidth;            // restart the animation
+    item.classList.add("nudge");
+  }
+  function showTrail() {
+    const v = vectorToTarget();
+    [0.3, 0.45, 0.6, 0.75].forEach((t, n) => {
+      const dot = document.createElement("div");
+      dot.className = "trail-dot";
+      dot.style.left = v.from.x + v.x * t - 5 + "px";
+      dot.style.top = v.from.y + v.y * t - 5 + "px";
+      dot.style.setProperty("--d", n);
+      stage.appendChild(dot);
+    });
+  }
+  function showHand() {
+    const v = vectorToTarget();
+    const hand = document.createElement("div");
+    hand.className = "hand";
+    hand.textContent = "👆";
+    hand.style.left = v.from.x - 10 + "px";
+    hand.style.top = v.from.y - 6 + "px";
+    hand.style.setProperty("--hx", v.x * 0.8 + "px");
+    hand.style.setProperty("--hy", v.y * 0.8 + "px");
+    stage.appendChild(hand);
+  }
+  function startGuidance() {
+    target.classList.add("breathe");
+    timers.push(setTimeout(() => { nudge(); nudgeLoop = setInterval(nudge, 7000); }, 4000));
+    timers.push(setTimeout(showTrail, 5500));
+    timers.push(setTimeout(() => clue.classList.add("show"), 7000));
+    timers.push(setTimeout(showHand, 12000));
+  }
+  function stopGuidance() {
+    timers.forEach(clearTimeout);
+    clearInterval(nudgeLoop);
+    stage.querySelectorAll(".trail-dot, .hand").forEach((el) => el.remove());
+    target.classList.remove("breathe");
+    item.classList.remove("nudge");
+  }
+
+  /* ----- the experiment: fly in, build suspense, reveal ----- */
+  function flyToTarget() {
     if (done) return;
     done = true;
+    stopGuidance();
+    target.classList.remove("glow");
+    const v = vectorToTarget();
+    item.classList.remove("back");
+    item.classList.add("fly");
+    item.style.transform = `translate3d(${dx + v.x}px, ${dy + v.y}px, 0) scale(.8)`;
+    setTimeout(suspense, 420);
+  }
+
+  function suspense() {
     item.classList.add("hide");
-    stage.insertAdjacentHTML("beforeend", `
-      <div class="res">
-        <span>${idiom.resultEmoji}</span>
-        <span class="g">${idiom.expectedEmoji}</span>
-      </div>
-      <div class="cap">${idiom.resultMl}<span class="en">${idiom.resultEn}</span></div>`);
-    onFinished();
+    const c = centerOf(target);
+
+    // "thinking" dots above the target
+    const dots = document.createElement("div");
+    dots.className = "dots";
+    dots.textContent = "• • •";
+    dots.style.left = c.x - 30 + "px";
+    dots.style.top = c.y - target.offsetHeight / 2 - 34 + "px";
+    stage.appendChild(dots);
+
+    stage.classList.add("tense");        // the scene dims slightly
+    target.classList.add("tremble");     // the target shakes harder and harder
+    setTimeout(() => reveal(dots, c), 1800);
+  }
+
+  function reveal(dots, c) {
+    dots.remove();
+    stage.classList.remove("tense");
+    target.classList.remove("tremble");
+
+    // ring burst + the real result pops in
+    const ring = document.createElement("div");
+    ring.className = "burst";
+    ring.style.left = c.x - 10 + "px";
+    ring.style.top = c.y - 10 + "px";
+    stage.appendChild(ring);
+    setTimeout(() => ring.remove(), 800);
+
+    target.textContent = idiom.resultEmoji;
+    target.classList.add("reveal");
+
+    // what people expected: faded and crossed out
+    const ghost = document.createElement("div");
+    ghost.className = "ghost";
+    ghost.textContent = idiom.expectedEmoji;
+    ghost.style.left = Math.max(8, target.offsetLeft - target.offsetWidth - 10) + "px";
+    ghost.style.top = target.offsetTop + "px";
+    stage.appendChild(ghost);
+
+    // the message goes BELOW the stage so the scene stays visible
+    msg.innerHTML = `${idiom.resultMl}<span class="en">${idiom.resultEn}</span>`;
+    msg.classList.remove("hide");
+
+    setTimeout(onFinished, 900);
+  }
+
+  /* ----- pointer handling (smooth: transform only, one update per frame) ----- */
+  function applyMove() {
+    frame = 0;
+    item.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
+    target.classList.toggle("glow", isNear());
   }
 
   item.onpointerdown = (e) => {
+    if (done) return;
+    stopGuidance();
     dragging = true;
     moved = 0;
-    startX = e.clientX;
-    startY = e.clientY;
-    originLeft = item.offsetLeft;
-    originTop = item.offsetTop;
+    startX = e.clientX - dx;          // continue from where the item currently is
+    startY = e.clientY - dy;
+    item.classList.remove("back");
+    item.classList.add("held");
+    item.style.transition = "none";
     item.setPointerCapture(e.pointerId);
-    item.style.animation = "none";
-    item.style.bottom = "auto";
-    item.style.left = originLeft + "px";
-    item.style.top = originTop + "px";
+
+    // keep the item inside the stage
+    const s = stage.getBoundingClientRect(), r = item.getBoundingClientRect();
+    limits = { minX: s.left - r.left + dx, maxX: s.right - r.right + dx,
+               minY: s.top - r.top + dy,  maxY: s.bottom - r.bottom + dy };
   };
 
   item.onpointermove = (e) => {
     if (!dragging) return;
-    target.classList.toggle("glow", overlaps(item, target));   // glow when close
-    const dx = e.clientX - startX, dy = e.clientY - startY;
-    moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
-    item.style.left = originLeft + dx + "px";
-    item.style.top = originTop + dy + "px";
+    const rawX = e.clientX - startX, rawY = e.clientY - startY;
+    moved = Math.max(moved, Math.abs(rawX - dx) + Math.abs(rawY - dy));
+    dx = Math.min(limits.maxX, Math.max(limits.minX, rawX));
+    dy = Math.min(limits.maxY, Math.max(limits.minY, rawY));
+    if (!frame) frame = requestAnimationFrame(applyMove);
   };
 
   item.onpointerup = () => {
+    if (!dragging) return;
     dragging = false;
+    item.classList.remove("held");
+    item.style.transition = "";
     target.classList.remove("glow");
 
-    if (overlaps(item, target) || moved < 6) {   // dropped on target, or a simple tap
-      runExperiment();
-    } else {                                      // missed: slide back to the start
-      item.style.transition = "all .3s";
-      item.style.left = "8%";
-      item.style.top = stage.clientHeight * 0.55 + "px";
-      setTimeout(() => {
-        item.style.transition = "";
-        item.style.animation = "";
-      }, 320);
-    }
+    if (isNear()) return flyToTarget();      // dropped on the target
+
+    // A tap or a miss: spring back, then lead the player with a clue
+    item.classList.add("back");
+    dx = 0; dy = 0;
+    item.style.transform = "translate3d(0, 0, 0)";
+    setTimeout(() => { clue.classList.add("show"); nudge(); }, 450);
   };
+
+  // Keyboard users: Enter or Space runs the experiment
+  item.onkeydown = (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flyToTarget(); }
+  };
+
+  startGuidance();
 }
 
 /* ==========================================================
