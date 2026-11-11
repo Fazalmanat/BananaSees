@@ -595,3 +595,65 @@ main {
 .soc:hover { color: var(--pk); transform: translateY(-3px) scale(1.15); }
 .btn-icon { display: inline-flex; align-items: center; gap: 8px; }
 .btn-icon svg { width: 18px; height: 18px; }
+
+/* ==========================================================
+   Responsive layout (tablet and phone)
+   Kept at the end so it overrides the rules above.
+   ========================================================== */
+
+/* All sizes: stop long Malayalam words and wide content from breaking the layout */
+html { -webkit-text-size-adjust: 100%; }
+body { overflow-x: hidden; }
+.box, .tile, .opt, .note, .rev, .cap, .hint { overflow-wrap: anywhere; }
+.opt > span { min-width: 0; flex: 1; }
+h1 { font-size: clamp(1.6rem, 6vw, 2.2rem); }
+.ml { font-size: clamp(1.15rem, 4.5vw, 1.5rem); }
+.stage, .tgt, .tok, .res { max-width: 100%; }
+.tgt { font-size: clamp(3.4rem, 16vw, 5rem); }
+.tok { font-size: clamp(2.8rem, 12vw, 4rem); }
+.res { font-size: clamp(3rem, 15vw, 5rem); }
+
+/* Tablets and below */
+@media (max-width: 720px) {
+  main { padding: 10px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .tile { padding: 10px; }
+  .how { grid-template-columns: 1fr; }
+}
+
+/* Phones */
+@media (max-width: 520px) {
+  /* Nav: logo + score on row 1, three links on row 2 */
+  nav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: center; }
+  .nav-links { display: contents; }
+  .logo { order: 1; grid-column: 1 / 3; font-size: 1.25rem; }
+  .logo svg { width: 40px; height: 40px; }
+  .pill:not(.nl) { order: 2; justify-self: end; }
+  .nl { order: 3; text-align: center; padding: 7px 4px; font-size: .85rem; }
+
+  /* Cards and text */
+  .box { padding: 14px; border-radius: 18px; margin: 12px 0; }
+  .hero { padding: 18px 12px; }
+  .hero svg { width: 90px; height: 90px; }
+  .opt { padding: 8px; gap: 8px; font-size: .95rem; }
+  .opt i { width: 30px; height: 30px; }
+  .note, .rev { padding: 10px; font-size: .95rem; }
+
+  /* Drag stage */
+  .stage { height: 215px; }
+  .hint { font-size: .8rem; padding: 0 8px; }
+  .cap { font-size: .8rem; left: 6px; right: 6px; bottom: 6px; padding: 4px 6px; }
+  .res { gap: 10px; padding-bottom: 36px; }
+
+  /* Buttons: full width, easy to tap */
+  .cta { flex-direction: column; align-items: stretch; }
+  .cta .btn, .contact-links .btn { width: 100%; text-align: center; justify-content: center; }
+  .contact-links { flex-direction: column; }
+  .contact-card { padding: 10px; }
+}
+
+/* Very small phones */
+@media (max-width: 360px) {
+  .grid { grid-template-columns: 1fr; }
+  .nl { font-size: .78rem; }
+}
