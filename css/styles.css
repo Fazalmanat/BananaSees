@@ -648,7 +648,7 @@ h1 { font-size: clamp(1.6rem, 6vw, 2.2rem); }
 
 .dots { position: absolute; width: 60px; text-align: center; font-weight: 800; font-size: 1.3rem; letter-spacing: 2px; animation: blink .7s infinite; z-index: 4; }
 @keyframes blink { 50% { opacity: .2; } }
-.burst { position: absolute; width: 20px; height: 20px; border-radius: 50%; border: 4px solid #ffd400; animation: burst .7s ease-out forwards; z-index: 4; pointer-events: none; }
+.burst { position: absolute; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #ffd400; animation: burst .7s ease-out forwards; z-index: 4; pointer-events: none; }
 @keyframes burst { to { transform: scale(9); opacity: 0; } }
 .ghost { position: absolute; font-size: clamp(2.6rem, 11vw, 3.6rem); opacity: 0; animation: ghost-in .6s .25s forwards; pointer-events: none; }
 .ghost::after { content: "✖"; position: absolute; right: -6px; top: -6px; font-size: 1.6rem; color: #e0245e; }
@@ -672,3 +672,88 @@ h1 { font-size: clamp(1.6rem, 6vw, 2.2rem); }
 @media (max-width: 520px) {
   .clue { font-size: .8rem; }
 }
+
+/* ==========================================================
+   Theme v2: soft sunrise colours, hairline borders, gentle shadows
+   (placed late so it overrides the older rules)
+   ========================================================== */
+:root {
+  --bg: #fffaf0; --y: #ffd84d; --pk: #ff6f91; --tl: #2ec4b6; --bl: #5b7cfa;
+  --ink: #2b2540; --ln: rgba(43, 37, 64, .08);
+  --shadow: 0 8px 28px rgba(80, 60, 120, .08);
+}
+body { background: linear-gradient(160deg, #fff7df 0%, #ffeef4 55%, #e8f6ff 100%) fixed; }
+.box { border: 1px solid var(--ln); box-shadow: var(--shadow); border-radius: 24px; }
+.tile { border: 1px solid rgba(255, 255, 255, .8); box-shadow: 0 6px 18px rgba(80, 60, 120, .08); }
+.how div, .contact-card, .opt, .pill, input, textarea, select { border: 1px solid var(--ln); }
+.pill { background: rgba(255, 255, 255, .85); box-shadow: 0 2px 8px rgba(80, 60, 120, .06); }
+.btn { box-shadow: 0 4px 12px rgba(43, 37, 64, .10); }
+.btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(43, 37, 64, .12); }
+.btn.pk { background: linear-gradient(135deg, #ff6f91, #ff9966); box-shadow: 0 6px 16px rgba(255, 111, 145, .35); }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 6px 16px rgba(255, 111, 145, .35), 0 0 0 0 rgba(255, 111, 145, .45); }
+  50% { box-shadow: 0 6px 16px rgba(255, 111, 145, .35), 0 0 0 14px rgba(255, 111, 145, 0); }
+}
+.opt { background: rgba(255, 255, 255, .9); }
+.opt.sel { background: #fff3c4; border-color: #ffd84d; }
+.stage { box-shadow: inset 0 0 0 1px var(--ln); }
+
+/* ---------- Wider layout (less empty space on big screens) ---------- */
+main { max-width: 1100px; padding: clamp(12px, 3vw, 28px); }
+.site-footer { max-width: 1100px; }
+/* Text-heavy pages stay a comfortable reading width */
+#app[data-page="idiom"], #app[data-page="suggest"], #app[data-page="about"], #app[data-page="account"], #app[data-page="signin"] { max-width: 820px; margin: 0 auto; }
+
+.hero-split { display: grid; grid-template-columns: minmax(200px, 300px) 1fr; gap: 28px; align-items: center; text-align: left; padding: clamp(20px, 4vw, 44px); }
+.hero-art svg { width: 100%; max-width: 260px; height: auto; margin: 0 auto; display: block; }
+.hero-text h1 { font-size: clamp(2rem, 5vw, 3rem); }
+.hero-text .cta { justify-content: flex-start; }
+.hero-split .how { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 820px) {
+  .hero-split { grid-template-columns: 1fr; text-align: center; gap: 12px; }
+  .hero-art svg { max-width: 130px; }
+  .hero-text .cta { justify-content: center; }
+  .hero-split .how { grid-template-columns: 1fr; text-align: left; }
+}
+
+/* ---------- Account / sign in ---------- */
+.acct { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--ink); font-size: .9rem; }
+.avatar { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: #fff; font-weight: 800; font-size: .75rem; }
+.avatar.big { width: 76px; height: 76px; font-size: 2rem; }
+.account { text-align: center; }
+.em-big { font-size: 3.4rem; }
+.stat-row { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin: 14px 0; }
+.stat { background: #fffdf3; border: 1px solid var(--ln); border-radius: 16px; padding: 10px 18px; font-size: .85rem; }
+.stat b { display: block; font-size: 1.5rem; }
+.done-row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; font-size: 2rem; }
+
+/* Phone nav with the account pill: logo | score | account on row 1, links on row 2 */
+@media (max-width: 520px) {
+  nav { grid-template-columns: repeat(4, 1fr); }
+  .logo { grid-column: 1 / 3; order: 1; }
+  .pill.score { order: 2; justify-self: end; }
+  .pill.acct { order: 3; justify-self: end; }
+  .nl { order: 4; }
+  .nl-exp { grid-column: span 2; }
+}
+
+/* ---------- Sign-in page ---------- */
+.signin { display: grid; grid-template-columns: minmax(150px, 240px) 1fr; gap: 28px; align-items: center; padding: clamp(18px, 4vw, 40px); }
+.signin-art svg { width: 100%; max-width: 200px; height: auto; display: block; margin: 0 auto; }
+.btn-wide { width: 100%; margin: 6px 0 0; }
+.divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 4px; color: #8a7fa0; font-size: .85rem; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--ln); }
+.status { margin-top: 10px; background: #fff7e0; border-radius: 12px; padding: 8px 12px; }
+.btn-link { color: var(--ink); font-weight: 700; text-decoration: none; }
+.btn-link:hover { color: var(--pk); }
+@media (max-width: 720px) {
+  .signin { grid-template-columns: 1fr; text-align: center; }
+  .signin-art svg { max-width: 110px; }
+  .signin-body label { text-align: left; }
+}
+
+/* ---------- Google button & send gate ---------- */
+.g-mark { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #4285f4; font-weight: 900; margin-right: 8px; }
+#google-btn { margin-bottom: 8px; }
+.gate { margin-top: 14px; text-align: center; background: #fff7e0; border-radius: 16px; padding: 14px; }
+.gate p { margin: 0 0 8px; font-weight: 700; }

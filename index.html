@@ -18,20 +18,21 @@
         <!-- Logo: a banana with googly eyes -->
         <svg viewBox="0 0 100 100">
           <path d="M18 30 C30 78 70 92 90 62 C93 57 88 53 84 56 C66 76 40 66 32 24 C30 18 16 22 18 30Z"
-                fill="#ffd400" stroke="#2a1f3d" stroke-width="3" stroke-linejoin="round"/>
-          <circle cx="46" cy="52" r="11" fill="#fff" stroke="#2a1f3d" stroke-width="2.5"/>
-          <circle cx="68" cy="58" r="11" fill="#fff" stroke="#2a1f3d" stroke-width="2.5"/>
-          <circle cx="49" cy="54" r="5" fill="#2a1f3d"/>
-          <circle cx="71" cy="60" r="5" fill="#2a1f3d"/>
-          <path d="M52 74 Q60 80 68 74" fill="none" stroke="#2a1f3d" stroke-width="3" stroke-linecap="round"/>
+                fill="#ffd400" stroke="#2b2540" stroke-width="2" stroke-linejoin="round"/>
+          <circle cx="46" cy="52" r="11" fill="#fff" stroke="#2b2540" stroke-width="2"/>
+          <circle cx="68" cy="58" r="11" fill="#fff" stroke="#2b2540" stroke-width="2"/>
+          <circle cx="49" cy="54" r="5" fill="#2b2540"/>
+          <circle cx="71" cy="60" r="5" fill="#2b2540"/>
+          <path d="M52 74 Q60 80 68 74" fill="none" stroke="#2b2540" stroke-width="2" stroke-linecap="round"/>
         </svg>
         <span>Banana Sees</span>
       </a>
       <div class="nav-links">
-        <a class="pill nl" href="#list">Experiments</a>
+        <a class="pill nl nl-exp" href="#list">Experiments</a>
         <a class="pill nl" href="#suggest">Suggest</a>
         <a class="pill nl" href="#about">About</a>
-        <div class="pill">🍌 <span id="score">0</span></div>
+        <a class="pill acct" id="acct" href="#signin">👤 Sign in</a>
+        <div class="pill score">🍌 <span id="score">0</span></div>
       </div>
     </nav>
 
@@ -42,6 +43,10 @@
   <!-- Footer: ownership claim (filled in by app.js) -->
   <footer class="site-footer" id="footer"></footer>
 
+  <!-- Backend library (only used when js/config.js is filled in) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/backend.js"></script>
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
 </body>

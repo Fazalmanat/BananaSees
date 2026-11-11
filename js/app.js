@@ -1,7 +1,7 @@
 /* ==========================================================
    Banana Sees: app logic
    Pages are chosen by the URL hash:
-     #home (default) · #list · #suggest · #about · #<idiom id>
+     #home (default) · #list · #suggest · #about · #account · #signin · #<idiom id>
    Idiom content comes from data.js (IDIOMS).
    ========================================================== */
 "use strict";
@@ -16,6 +16,136 @@ let score = 0;
 
 /* ---------- Small helpers ---------- */
 const $ = (id) => document.getElementById(id);
+
+// Escape text before putting it into HTML (names come from outside)
+const esc = (text) => String(text).replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ==========================================================
+   Account
+   Three ways in:
+   1) Google    : real account (needs the backend, see backend/README.md)
+   2) Nickname  : no password; saved on the backend when it is set up,
+                  otherwise in this browser only
+   3) Guest     : just play, nothing is saved
+   (On the claude.ai copy, "Continue with Claude" replaces Google.)
+   ========================================================== */
+const account = { signedIn: false, mode: null, id: null, name: "", email: "", color: "#ff6f91", backend: false, db: null };
+const LOCAL_KEY = "bananaSees";
+const COLORS = ["#ff6f91", "#2ec4b6", "#5b7cfa", "#ff9966", "#a66cff"];
+
+async function initAccount() {
+  try {
+    if (Backend.enabled) await restoreBackendSession();
+    else await tryClaudeSignIn();
+  } catch (err) { /* stay a guest */ }
+
+  if (!account.signedIn) loadNickname();       // browser-only nickname
+  if (location.search) history.replaceState(null, "", location.pathname + location.hash);  // tidy login redirect
+
+  updateAccountPill();
+  const page = location.hash.slice(1);
+  if (["", "home", "list", "account", "signin", "suggest"].includes(page)) route();
+}
+
+// Already signed in on the backend (Google or nickname)?
+async function restoreBackendSession() {
+  const session = await Backend.session();
+  if (!session) return;
+  const user = session.user;
+  const profile = await Backend.loadProfile(user.id);
+  const meta = user.user_metadata || {};
+
+  account.signedIn = true;
+  account.backend = true;
+  account.id = user.id;
+  account.email = user.email || "";
+  account.mode = user.is_anonymous ? "nickname" : "google";
+  account.name = (profile && profile.nickname) || meta.full_name || meta.name || account.email.split("@")[0] || "Banana fan";
+  account.color = COLORS[account.name.length % COLORS.length];
+  if (profile) applyProgress(profile);
+}
+
+// claude.ai copy only: sign in with the viewer's Claude account
+async function tryClaudeSignIn() {
+  try {
+    const user = window.claude ? await claude.use("user") : null;
+    if (!user) return false;
+    const me = await user.me();
+    if (!me || !me.id) return false;
+
+    Object.assign(account, { signedIn: true, mode: "claude", id: me.id, name: me.name || "Banana fan", color: me.color || account.color });
+    account.db = await claude.use("db");
+    if (account.db) {
+      const snap = await account.db.collection("data/users/" + me.id).doc("progress").get();
+      if (snap.exists) applyProgress(snap.data());
+    }
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+// Nickname saved in this browser (used when there is no backend)
+function loadNickname() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOCAL_KEY) || "null");
+    if (!saved || !saved.name) return;
+    Object.assign(account, { signedIn: true, mode: "nickname", name: saved.name, color: saved.color || account.color });
+    applyProgress(saved);
+  } catch (err) { /* storage unavailable */ }
+}
+
+async function signInWithNickname(name) {
+  const clean = name.trim().slice(0, 24);
+  if (Backend.enabled) {                        // saved on the server
+    const session = await Backend.signInNickname();
+    account.id = session.user.id;
+    account.backend = true;
+  }
+  Object.assign(account, { signedIn: true, mode: "nickname", name: clean, email: "", color: COLORS[clean.length % COLORS.length] });
+  saveProgress();
+  updateAccountPill();
+  location.hash = "account";
+}
+
+async function signOut() {
+  try { if (account.backend) await Backend.signOut(); } catch (err) {}
+  try { localStorage.removeItem(LOCAL_KEY); } catch (err) {}
+  Object.assign(account, { signedIn: false, mode: null, id: null, name: "", email: "", backend: false });
+  finished.clear();
+  score = 0;
+  scoreEl.textContent = 0;
+  updateAccountPill();
+  location.hash = "signin";
+}
+
+function applyProgress(saved) {
+  (saved.done || []).forEach((id) => finished.add(id));
+  score = saved.score || 0;
+  scoreEl.textContent = score;
+}
+
+function saveProgress() {
+  const data = { done: [...finished], score };
+  if (account.backend) {
+    Backend.saveProfile({ id: account.id, nickname: account.name, email: account.email || null, ...data, updated_at: new Date().toISOString() }).catch(() => {});
+  } else if (account.mode === "claude" && account.db) {
+    account.db.collection("data/users/" + account.id).doc("progress").set({ ...data, at: Date.now() }).catch(() => {});
+  } else if (account.mode === "nickname") {
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ ...data, name: account.name, color: account.color })); } catch (err) {}
+  }
+}
+
+function avatar(size = "") {
+  return `<span class="avatar ${size}" style="background:${esc(account.color)}">${esc(account.name.trim().charAt(0).toUpperCase() || "🍌")}</span>`;
+}
+
+function updateAccountPill() {
+  const pill = $("acct");
+  pill.href = account.signedIn ? "#account" : "#signin";
+  pill.innerHTML = account.signedIn ? `${avatar()} ${esc(account.name.split(" ")[0])}` : "👤 Sign in";
+}
 
 // Do two on-screen elements overlap?
 function overlaps(a, b) {
@@ -95,18 +225,20 @@ function buildFooter() {
    ========================================================== */
 function renderHome() {
   app.innerHTML = `
-    <div class="box hero">
-      ${logoSvg}
-      <h1>Banana Sees</h1>
-      <p class="lead">Welcome to the only lab where Malayalam proverbs are tested by a banana with googly eyes.</p>
-      <p>You know sayings like <b>“കാക്ക കുളിച്ചാൽ കൊക്കാകുമോ?”</b> (will a crow turn into a crane if it bathes?). Everyone quotes them. Nobody checks. We check.</p>
+    <section class="box hero hero-split">
+      <div class="hero-art">${logoSvg}</div>
+      <div class="hero-text">
+        <h1>Banana Sees</h1>
+        <p class="lead">Welcome to the only lab where Malayalam proverbs are tested by a banana with googly eyes.</p>
+        <p>You know sayings like <b>“കാക്ക കുളിച്ചാൽ കൊക്കാകുമോ?”</b> (will a crow turn into a crane if it bathes?). Everyone quotes them. Nobody checks. We check.</p>
+        <div class="cta"><a class="btn pk pulse cta-big" href="#list">See the experiments →</a></div>
+      </div>
       <div class="how">
         <div><b>🤔</b>Guess what happens. A, B, C or D.</div>
-        <div><b>🖐️</b>Drag things around and run the experiment.</div>
+        <div><b>🖐️</b>Play with the scene and run the experiment.</div>
         <div><b>😏</b>Get the answer, plus a sarcastic comment on your choice.</div>
       </div>
-      <div class="cta"><a class="btn pk pulse cta-big" href="#list">See the experiments →</a></div>
-    </div>`;
+    </section>`;
 }
 
 /* ==========================================================
@@ -135,8 +267,20 @@ function renderList() {
 
 /* ==========================================================
    PAGE 3: Suggestions & feedback
+   With the backend on, sending needs a Google sign-in (so we have
+   an email to reply to). The server saves it and emails the owner.
    ========================================================== */
 function renderSuggest() {
+  const needsGoogle = Backend.enabled && account.mode !== "google";
+
+  const sendArea = needsGoogle
+    ? `<div class="gate">
+         <p>🔒 Sign in with Google to send, so we have an email to reply to.</p>
+         <button class="btn pk" id="gate-btn">Continue with Google</button>
+       </div>`
+    : `${account.mode === "google" ? `<p class="small-note">Sending as ${esc(account.email)}</p>` : ""}
+       <div class="cta"><button class="btn pk" id="sb">Send it 🚀</button></div>`;
+
   app.innerHTML = `
     <div class="box">
       <h1 class="page-title">Suggestions &amp; feedback 💡</h1>
@@ -155,37 +299,51 @@ function renderSuggest() {
       <label for="sm">Your message</label>
       <textarea id="sm" maxlength="800" placeholder="Tell us what you’d like to see…"></textarea>
 
-      <div class="cta"><button class="btn pk" id="sb">Send it 🚀</button></div>
+      ${sendArea}
       <div id="sr" class="note hide"></div>
     </div>`;
 
+  // Restore a draft saved just before the Google redirect
+  try {
+    const draft = JSON.parse(sessionStorage.getItem("bananaDraft") || "null");
+    if (draft) { $("sk").value = draft.kind; $("si").value = draft.idiom; $("sm").value = draft.message; sessionStorage.removeItem("bananaDraft"); }
+  } catch (err) {}
+
   const showStatus = (text) => {
-    const box = $("sr");
-    box.textContent = text;
-    box.classList.remove("hide");
+    $("sr").textContent = text;
+    $("sr").classList.remove("hide");
   };
 
+  // Not signed in with Google: keep the draft, then go to Google
+  if ($("gate-btn")) {
+    $("gate-btn").onclick = () => {
+      try { sessionStorage.setItem("bananaDraft", JSON.stringify({ kind: $("sk").value, idiom: $("si").value, message: $("sm").value })); } catch (err) {}
+      location.hash = "suggest";
+      Backend.signInGoogle();
+    };
+    return;
+  }
+
   $("sb").onclick = async () => {
-    const message = $("sm").value.trim();
-    if (!message) return showStatus("Say something first. Even a banana needs input.");
+    const payload = { kind: $("sk").value, idiom: $("si").value.trim(), message: $("sm").value.trim() };
+    if (!payload.message) return showStatus("Say something first. Even a banana needs input.");
 
+    $("sb").disabled = true;
     try {
-      // `claude` only exists when the page is opened on claude.ai.
-      // If you host this file yourself, connect your own backend here.
-      const db = window.claude ? await claude.use("db") : null;
-      if (!db) return showStatus("Suggestions can’t be saved right now. Sign in and try again.");
-
-      await db.collection("suggestions").add({
-        kind: $("sk").value,
-        idiom: $("si").value.trim(),
-        message,
-        at: Date.now()
-      });
+      if (Backend.enabled) {
+        await Backend.sendSuggestion(payload);          // server emails the owner
+      } else {
+        // claude.ai copy: save into the page's own database
+        const db = window.claude ? await claude.use("db") : null;
+        if (!db) throw new Error("no backend");
+        await db.collection("suggestions").add({ ...payload, at: Date.now() });
+      }
       $("sm").value = "";
-      showStatus("Received! The banana will pretend to think about it. 🍌");
+      showStatus("Sent! ✅ The banana will pretend to think about it. 🍌");
     } catch (err) {
-      showStatus("Couldn’t send that. Please try again in a bit.");
+      showStatus("Couldn’t send that right now. Please try again in a bit.");
     }
+    $("sb").disabled = false;
   };
 }
 
@@ -218,6 +376,99 @@ function renderAbout() {
         <div class="contact-links">${links}</div>
       </div>
     </div>`;
+}
+
+/* ==========================================================
+   PAGE: Sign in (its own full page)
+   ========================================================== */
+function renderSignIn() {
+  const showClaude = !Backend.enabled && window.claude;
+
+  app.innerHTML = `
+    <section class="box signin">
+      <div class="signin-art">${logoSvg}</div>
+      <div class="signin-body">
+        <h1 class="page-title">Sign in to Banana Sees</h1>
+        <p class="small-note">Save your score and finished experiments. No passwords.</p>
+
+        <button class="btn pk btn-wide" id="google-btn"><span class="g-mark">G</span> Continue with Google</button>
+        ${showClaude ? `<button class="btn btn-wide" id="claude-btn">Continue with Claude</button>` : ""}
+        <div class="status small-note hide" id="signin-msg"></div>
+
+        <div class="divider"><span>or</span></div>
+
+        <form id="nick-form" autocomplete="off">
+          <label for="nick">Pick a nickname</label>
+          <input id="nick" maxlength="24" placeholder="e.g. Crow Whisperer" required>
+          <button class="btn btn-wide" type="submit">Play with this name</button>
+        </form>
+        <p class="small-note">${Backend.enabled ? "Your nickname and progress are saved online." : "Saved in this browser only."}</p>
+
+        <div class="cta"><a class="btn-link" href="#list">Continue as a guest →</a></div>
+      </div>
+    </section>`;
+
+  const say = (text) => { $("signin-msg").textContent = text; $("signin-msg").classList.remove("hide"); };
+
+  $("google-btn").onclick = () => {
+    if (Backend.enabled) return Backend.signInGoogle();
+    say("Google sign-in needs the backend. Follow backend/README.md, then fill in js/config.js.");
+  };
+
+  if ($("claude-btn")) $("claude-btn").onclick = async () => {
+    say("Checking your Claude account…");
+    if (await tryClaudeSignIn()) { updateAccountPill(); location.hash = "account"; }
+    else say("Couldn’t find a Claude sign-in here. Open this site through its claude.ai link while signed in.");
+  };
+
+  $("nick-form").onsubmit = async (e) => {
+    e.preventDefault();
+    const name = $("nick").value.trim();
+    if (!name) return;
+    try { await signInWithNickname(name); }
+    catch (err) { say("Couldn’t save that nickname right now. You can still play as a guest."); }
+  };
+}
+
+/* ==========================================================
+   PAGE: Account (your profile once signed in)
+   ========================================================== */
+function renderAccount() {
+  if (!account.signedIn) return renderSignIn();
+
+  const dones = IDIOMS.filter((i) => finished.has(i.id)).map((i) => i.emoji).join(" ");
+  const how = {
+    google: `Signed in with Google (${esc(account.email)}). Your progress is saved to your account.`,
+    claude: "Signed in with Claude. Your progress is saved to your account.",
+    nickname: account.backend ? "Playing with a nickname. Your progress is saved online." : "Playing with a nickname. Your progress is saved in this browser."
+  }[account.mode];
+
+  app.innerHTML = `
+    <div class="box account">
+      ${avatar("big")}
+      <h1 class="page-title">Hi, ${esc(account.name)}! 👋</h1>
+      <p>${how}</p>
+      <div class="stat-row">
+        <div class="stat"><b>${finished.size}/${IDIOMS.length}</b>experiments done</div>
+        <div class="stat"><b>🍌 ${score}</b>correct guesses</div>
+      </div>
+      ${dones ? `<div class="done-row">${dones}</div>` : `<p class="small-note">Nothing finished yet. The banana is waiting.</p>`}
+      <div class="cta">
+        <a class="btn pk" href="#list">Back to experiments</a>
+        <button class="btn" id="reset">Reset my progress</button>
+        ${account.mode !== "claude" ? `<button class="btn" id="signout">Sign out</button>` : ""}
+      </div>
+    </div>`;
+
+  $("reset").onclick = () => {
+    if (!confirm("Clear all your finished experiments and your score?")) return;
+    finished.clear();
+    score = 0;
+    scoreEl.textContent = 0;
+    saveProgress();
+    renderAccount();
+  };
+  if ($("signout")) $("signout").onclick = signOut;
 }
 
 /* ==========================================================
@@ -294,6 +545,7 @@ function renderIdiom(index) {
       scoreEl.textContent = score;
     }
     finished.add(idiom.id);
+    saveProgress();
     $("s3").className = "on";
     if (correct) confetti();
 
@@ -527,15 +779,19 @@ function route() {
   const hash = location.hash.slice(1);
   const index = IDIOMS.findIndex((i) => i.id === hash);
   window.scrollTo(0, 0);
+  app.dataset.page = index >= 0 ? "idiom" : (hash || "home");
 
   if (index >= 0) renderIdiom(index);
   else if (hash === "list") renderList();
   else if (hash === "suggest") renderSuggest();
   else if (hash === "about") renderAbout();
+  else if (hash === "account") renderAccount();
+  else if (hash === "signin") account.signedIn ? renderAccount() : renderSignIn();
   else renderHome();
 }
 
 buildBackground();
 buildFooter();
+initAccount();
 window.addEventListener("hashchange", route);
 route();
