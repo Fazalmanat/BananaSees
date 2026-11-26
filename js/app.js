@@ -14,6 +14,24 @@ const logoSvg = document.querySelector(".logo svg").outerHTML;
 const finished = new Set();   // ids of idioms already completed
 let score = 0;
 
+/* ---------- Safety net ----------
+   If js/backend.js or js/config.js failed to load (usually a wrong file
+   name), the site keeps working without the backend and says so. */
+const backend = typeof Backend !== "undefined" ? Backend : { enabled: false };
+
+function warnAboutMissingFiles() {
+  const missing = [];
+  if (typeof Backend === "undefined") missing.push("js/backend.js");
+  if (!window.BACKEND) missing.push("js/config.js");
+  if (!missing.length) return;
+
+  const bar = document.createElement("div");
+  bar.className = "load-warning";
+  bar.textContent = "⚠ Couldn’t load: " + missing.join(", ") +
+    ". Check the file names match exactly (for example config_1.js must be renamed to config.js). Running without the backend for now.";
+  document.body.prepend(bar);
+}
+
 /* ---------- Small helpers ---------- */
 const $ = (id) => document.getElementById(id);
 
@@ -35,7 +53,7 @@ const COLORS = ["#ff6f91", "#2ec4b6", "#5b7cfa", "#ff9966", "#a66cff"];
 
 async function initAccount() {
   try {
-    if (Backend.enabled) await restoreBackendSession();
+    if (backend.enabled) await restoreBackendSession();
   } catch (err) { /* stay a guest */ }
 
   if (!account.signedIn) loadNickname();       // browser-only nickname
@@ -48,10 +66,10 @@ async function initAccount() {
 
 // Already signed in on the backend (Google or nickname)?
 async function restoreBackendSession() {
-  const session = await Backend.session();
+  const session = await backend.session();
   if (!session) return;
   const user = session.user;
-  const profile = await Backend.loadProfile(user.id);
+  const profile = await backend.loadProfile(user.id);
   const meta = user.user_metadata || {};
 
   account.signedIn = true;
@@ -76,8 +94,8 @@ function loadNickname() {
 
 async function signInWithNickname(name) {
   const clean = name.trim().slice(0, 24);
-  if (Backend.enabled) {                        // saved on the server
-    const session = await Backend.signInNickname();
+  if (backend.enabled) {                        // saved on the server
+    const session = await backend.signInNickname();
     account.id = session.user.id;
     account.backend = true;
   }
@@ -88,7 +106,7 @@ async function signInWithNickname(name) {
 }
 
 async function signOut() {
-  try { if (account.backend) await Backend.signOut(); } catch (err) {}
+  try { if (account.backend) await backend.signOut(); } catch (err) {}
   try { localStorage.removeItem(LOCAL_KEY); } catch (err) {}
   Object.assign(account, { signedIn: false, mode: null, id: null, name: "", email: "", backend: false });
   finished.clear();
@@ -107,7 +125,7 @@ function applyProgress(saved) {
 function saveProgress() {
   const data = { done: [...finished], score };
   if (account.backend) {
-    Backend.saveProfile({ id: account.id, nickname: account.name, email: account.email || null, ...data, updated_at: new Date().toISOString() }).catch(() => {});
+    backend.saveProfile({ id: account.id, nickname: account.name, email: account.email || null, ...data, updated_at: new Date().toISOString() }).catch(() => {});
   } else if (account.mode === "nickname") {
     try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ ...data, name: account.name, color: account.color })); } catch (err) {}
   }
@@ -241,13 +259,24 @@ function renderList() {
     </div>`;
 }
 
+// Start Google sign-in, or explain in plain words why it can't start
+async function startGoogle(say) {
+  try {
+    await backend.signInGoogle();
+  } catch (err) {
+    if (err.message === "file") say("Google sign-in can’t work from a file on your computer. Open the site from its hosted address (or a local server like http://localhost:8000).");
+    else if (err.message === "google-off") say("Google isn’t switched on in Supabase yet. Go to Authentication → Sign In / Providers → Google and enable it.");
+    else say("Couldn’t start Google sign-in. Check the Supabase settings in backend/README.md.");
+  }
+}
+
 /* ==========================================================
    PAGE 3: Suggestions & feedback
    With the backend on, sending needs a Google sign-in (so we have
    an email to reply to). The server saves it and emails the owner.
    ========================================================== */
 function renderSuggest() {
-  const needsGoogle = Backend.enabled && account.mode !== "google";
+  const needsGoogle = backend.enabled && account.mode !== "google";
 
   const sendArea = needsGoogle
     ? `<div class="gate">
@@ -295,7 +324,7 @@ function renderSuggest() {
     $("gate-btn").onclick = () => {
       try { sessionStorage.setItem("bananaDraft", JSON.stringify({ kind: $("sk").value, idiom: $("si").value, message: $("sm").value })); } catch (err) {}
       location.hash = "suggest";
-      Backend.signInGoogle();
+      startGoogle(showStatus);
     };
     return;
   }
@@ -306,12 +335,12 @@ function renderSuggest() {
 
     $("sb").disabled = true;
     try {
-      if (!Backend.enabled) throw new Error("backend off");
-      await Backend.sendSuggestion(payload);          // server emails the owner
+      if (!backend.enabled) throw new Error("backend off");
+      await backend.sendSuggestion(payload);          // server emails the owner
       $("sm").value = "";
       showStatus("Sent! ✅ The banana will pretend to think about it. 🍌");
     } catch (err) {
-      showStatus(Backend.enabled
+      showStatus(backend.enabled
         ? "Couldn’t send that right now. Please try again in a bit."
         : "Sending isn’t switched on yet. The site owner needs to connect the backend.");
     }
@@ -371,7 +400,7 @@ function renderSignIn() {
           <input id="nick" maxlength="24" placeholder="e.g. Crow Whisperer" required>
           <button class="btn btn-wide" type="submit">Play with this name</button>
         </form>
-        <p class="small-note">${Backend.enabled ? "Your nickname and progress are saved online." : "Saved in this browser only."}</p>
+        <p class="small-note">${backend.enabled ? "Your nickname and progress are saved online." : "Saved in this browser only."}</p>
 
         <div class="cta"><a class="btn-link" href="#list">Continue as a guest →</a></div>
       </div>
@@ -380,7 +409,7 @@ function renderSignIn() {
   const say = (text) => { $("signin-msg").textContent = text; $("signin-msg").classList.remove("hide"); };
 
   $("google-btn").onclick = () => {
-    if (Backend.enabled) return Backend.signInGoogle();
+    if (backend.enabled) return startGoogle(say);
     say("Google sign-in needs the backend. Follow backend/README.md, then fill in js/config.js.");
   };
 
@@ -389,7 +418,11 @@ function renderSignIn() {
     const name = $("nick").value.trim();
     if (!name) return;
     try { await signInWithNickname(name); }
-    catch (err) { say("Couldn’t save that nickname right now. You can still play as a guest."); }
+    catch (err) {
+      say(/anonymous/i.test(err.message || "")
+        ? "Nicknames need “Anonymous sign-ins” switched on in Supabase (Authentication → Sign In / Providers)."
+        : "Couldn’t save that nickname right now. You can still play as a guest.");
+    }
   };
 }
 
@@ -752,6 +785,7 @@ function route() {
   else renderHome();
 }
 
+warnAboutMissingFiles();
 buildBackground();
 buildFooter();
 initAccount();
