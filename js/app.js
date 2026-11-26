@@ -28,16 +28,14 @@ const esc = (text) => String(text).replace(/[&<>"']/g, (c) =>
    2) Nickname  : no password; saved on the backend when it is set up,
                   otherwise in this browser only
    3) Guest     : just play, nothing is saved
-   (On the claude.ai copy, "Continue with Claude" replaces Google.)
    ========================================================== */
-const account = { signedIn: false, mode: null, id: null, name: "", email: "", color: "#ff6f91", backend: false, db: null };
+const account = { signedIn: false, mode: null, id: null, name: "", email: "", color: "#ff6f91", backend: false };
 const LOCAL_KEY = "bananaSees";
 const COLORS = ["#ff6f91", "#2ec4b6", "#5b7cfa", "#ff9966", "#a66cff"];
 
 async function initAccount() {
   try {
     if (Backend.enabled) await restoreBackendSession();
-    else await tryClaudeSignIn();
   } catch (err) { /* stay a guest */ }
 
   if (!account.signedIn) loadNickname();       // browser-only nickname
@@ -64,26 +62,6 @@ async function restoreBackendSession() {
   account.name = (profile && profile.nickname) || meta.full_name || meta.name || account.email.split("@")[0] || "Banana fan";
   account.color = COLORS[account.name.length % COLORS.length];
   if (profile) applyProgress(profile);
-}
-
-// claude.ai copy only: sign in with the viewer's Claude account
-async function tryClaudeSignIn() {
-  try {
-    const user = window.claude ? await claude.use("user") : null;
-    if (!user) return false;
-    const me = await user.me();
-    if (!me || !me.id) return false;
-
-    Object.assign(account, { signedIn: true, mode: "claude", id: me.id, name: me.name || "Banana fan", color: me.color || account.color });
-    account.db = await claude.use("db");
-    if (account.db) {
-      const snap = await account.db.collection("data/users/" + me.id).doc("progress").get();
-      if (snap.exists) applyProgress(snap.data());
-    }
-    return true;
-  } catch (err) {
-    return false;
-  }
 }
 
 // Nickname saved in this browser (used when there is no backend)
@@ -130,8 +108,6 @@ function saveProgress() {
   const data = { done: [...finished], score };
   if (account.backend) {
     Backend.saveProfile({ id: account.id, nickname: account.name, email: account.email || null, ...data, updated_at: new Date().toISOString() }).catch(() => {});
-  } else if (account.mode === "claude" && account.db) {
-    account.db.collection("data/users/" + account.id).doc("progress").set({ ...data, at: Date.now() }).catch(() => {});
   } else if (account.mode === "nickname") {
     try { localStorage.setItem(LOCAL_KEY, JSON.stringify({ ...data, name: account.name, color: account.color })); } catch (err) {}
   }
@@ -330,18 +306,14 @@ function renderSuggest() {
 
     $("sb").disabled = true;
     try {
-      if (Backend.enabled) {
-        await Backend.sendSuggestion(payload);          // server emails the owner
-      } else {
-        // claude.ai copy: save into the page's own database
-        const db = window.claude ? await claude.use("db") : null;
-        if (!db) throw new Error("no backend");
-        await db.collection("suggestions").add({ ...payload, at: Date.now() });
-      }
+      if (!Backend.enabled) throw new Error("backend off");
+      await Backend.sendSuggestion(payload);          // server emails the owner
       $("sm").value = "";
       showStatus("Sent! ✅ The banana will pretend to think about it. 🍌");
     } catch (err) {
-      showStatus("Couldn’t send that right now. Please try again in a bit.");
+      showStatus(Backend.enabled
+        ? "Couldn’t send that right now. Please try again in a bit."
+        : "Sending isn’t switched on yet. The site owner needs to connect the backend.");
     }
     $("sb").disabled = false;
   };
@@ -382,8 +354,6 @@ function renderAbout() {
    PAGE: Sign in (its own full page)
    ========================================================== */
 function renderSignIn() {
-  const showClaude = !Backend.enabled && window.claude;
-
   app.innerHTML = `
     <section class="box signin">
       <div class="signin-art">${logoSvg}</div>
@@ -392,7 +362,6 @@ function renderSignIn() {
         <p class="small-note">Save your score and finished experiments. No passwords.</p>
 
         <button class="btn pk btn-wide" id="google-btn"><span class="g-mark">G</span> Continue with Google</button>
-        ${showClaude ? `<button class="btn btn-wide" id="claude-btn">Continue with Claude</button>` : ""}
         <div class="status small-note hide" id="signin-msg"></div>
 
         <div class="divider"><span>or</span></div>
@@ -415,12 +384,6 @@ function renderSignIn() {
     say("Google sign-in needs the backend. Follow backend/README.md, then fill in js/config.js.");
   };
 
-  if ($("claude-btn")) $("claude-btn").onclick = async () => {
-    say("Checking your Claude account…");
-    if (await tryClaudeSignIn()) { updateAccountPill(); location.hash = "account"; }
-    else say("Couldn’t find a Claude sign-in here. Open this site through its claude.ai link while signed in.");
-  };
-
   $("nick-form").onsubmit = async (e) => {
     e.preventDefault();
     const name = $("nick").value.trim();
@@ -439,7 +402,6 @@ function renderAccount() {
   const dones = IDIOMS.filter((i) => finished.has(i.id)).map((i) => i.emoji).join(" ");
   const how = {
     google: `Signed in with Google (${esc(account.email)}). Your progress is saved to your account.`,
-    claude: "Signed in with Claude. Your progress is saved to your account.",
     nickname: account.backend ? "Playing with a nickname. Your progress is saved online." : "Playing with a nickname. Your progress is saved in this browser."
   }[account.mode];
 
@@ -456,7 +418,7 @@ function renderAccount() {
       <div class="cta">
         <a class="btn pk" href="#list">Back to experiments</a>
         <button class="btn" id="reset">Reset my progress</button>
-        ${account.mode !== "claude" ? `<button class="btn" id="signout">Sign out</button>` : ""}
+        <button class="btn" id="signout">Sign out</button>
       </div>
     </div>`;
 
@@ -468,7 +430,7 @@ function renderAccount() {
     saveProgress();
     renderAccount();
   };
-  if ($("signout")) $("signout").onclick = signOut;
+  $("signout").onclick = signOut;
 }
 
 /* ==========================================================
